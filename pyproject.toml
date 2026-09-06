@@ -42,6 +42,12 @@ dependencies = [
     "huggingface-hub>=0.27.1",
     "imageio==2.34.2",
     "matplotlib",
+    # mplib stays a runtime dep: robotwin/envs/robot/planner.py does a top-level
+    # ``import mplib`` (reached via _base_task -> Robot -> from .planner import),
+    # so it is a hard import-time dep; and MplibPlanner (the TOPP post-processor)
+    # is constructed on the default task path (_base_task hardcodes need_topp=True).
+    # Only MplibWrapperPlanner (planner_backend=="mplib") is unused -- env_server
+    # hardcodes planner_backend="curobo". See script/_install.sh (Phase 4).
     "mplib==0.2.1; platform_system == 'Linux' and platform_machine == 'x86_64'",
     "numpy==1.26.4",
     # Non-headless (not opencv-python-headless): sapien==3.0.0b1 transitively

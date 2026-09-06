@@ -7,41 +7,34 @@ echo "Installing pytorch3d ..."
 # cd ../..
 pip install "git+https://github.com/facebookresearch/pytorch3d.git@stable"
 
-echo "Adjusting code in sapien/wrapper/urdf_loader.py ..."
-# location of sapien, like "~/.conda/envs/RoboTwin/lib/python3.10/site-packages/sapien"
-SAPIEN_LOCATION=$(pip show sapien | grep 'Location' | awk '{print $2}')/sapien
-# Adjust some code in wrapper/urdf_loader.py
-URDF_LOADER=$SAPIEN_LOCATION/wrapper/urdf_loader.py
-# ----------- before -----------
-# 667         with open(urdf_file, "r") as f:
-# 668             urdf_string = f.read()
-# 669 
-# 670         if srdf_file is None:
-# 671             srdf_file = urdf_file[:-4] + "srdf"
-# 672         if os.path.isfile(srdf_file):
-# 673             with open(srdf_file, "r") as f:
-# 674                 self.ignore_pairs = self.parse_srdf(f.read())
-# ----------- after  -----------
-# 667         with open(urdf_file, "r", encoding="utf-8") as f:
-# 668             urdf_string = f.read()
-# 669 
-# 670         if srdf_file is None:
-# 671             srdf_file = urdf_file[:-4] + ".srdf"
-# 672         if os.path.isfile(srdf_file):
-# 673             with open(srdf_file, "r", encoding="utf-8") as f:
-# 674                 self.ignore_pairs = self.parse_srdf(f.read())
-sed -i -E 's/("r")(\))( as)/\1, encoding="utf-8") as/g' $URDF_LOADER
+# Note on the former SAPIEN UTF-8 sed: the upstream RoboTwin install used to
+# patch sapien/wrapper/urdf_loader.py to add ``encoding="utf-8"`` to the URDF/
+# SRDF ``open(..., "r")`` calls. That workaround is a NO-OP under the RLinf
+# install contract, which runs under a UTF-8 locale (the eval server is
+# C.UTF-8, so the default open() encoding is already utf-8). The RPent
+# ``[robotwin]`` install flow (``uv pip install -e ".[robotwin]"``) never ran
+# this sed and the env resets/steps correctly, confirming it is not load-
+# bearing. The sed is dropped to slim the install contract. (If you ever run
+# RoboTwin under a non-UTF-8 locale, set PYTHONUTF8=1 or LC_ALL=C.UTF-8
+# instead of patching sapien at install time.)
 
-# Note: the mplib planner.py "drop collide bail" patch is intentionally NOT
-# applied here. mplib is a vestigial code path in the RLinf/RPent runtime:
-# robots/robotwin/env_server.py hardcodes planner_backend="curobo", and no
-# code path sets planner_backend="mplib" (only the default-fallback and the
-# unused `elif mplib` branch in robotwin/envs/robot/robot.py exist). The
-# MplibWrapperPlanner is therefore never instantiated in production, so
-# patching mplib/planner.py has no effect on eval or data collection. The
-# patch is dropped to slim the install contract. (MplibWrapperPlanner is left
-# in place as an optional backend; mplib==0.2.1 remains a declared dep until
-# the inference-only dep review.)
+# Note on mplib: ``mplib==0.2.1`` remains a declared runtime dep of
+# ``rlinf-robotwin-runtime``. The Phase 4 (Round 2) static reachability check
+# found mplib is NOT removable:
+#   * ``robotwin/envs/robot/planner.py`` does a top-level ``import mplib``,
+#     so ``import robotwin.envs._base_task`` (which imports ``Robot`` ->
+#     ``from .planner import MplibPlanner, MplibWrapperPlanner``) eagerly
+#     imports mplib. Removing mplib breaks the env import entirely.
+#   * ``MplibPlanner`` (the TOPP post-processor) IS instantiated on the
+#     default task path: ``_base_task`` hardcodes ``self.need_topp = True``
+#     and passes it to ``Robot(...)``, which constructs ``MplibPlanner``
+#     when ``need_topp`` is true.
+# Only ``MplibWrapperPlanner`` (the alternative motion planner, selected by
+# ``planner_backend == "mplib"``) is never instantiated in production --
+# ``robots/robotwin/env_server.py`` hardcodes ``planner_backend = "curobo"``.
+# But that alone does not make mplib optional, because of the import-time and
+# TOPP-planner reachability above. The mplib planner.py "drop collide bail"
+# patch is therefore also not applied (no effect on the curobo eval path).
 
 echo "Installing Curobo (pinned @ d64c4b, --no-build-isolation) ..."
 # cuRobo is no longer vendored. Install the exact upstream commit (d64c4b)
