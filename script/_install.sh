@@ -37,12 +37,15 @@ pip install "git+https://github.com/facebookresearch/pytorch3d.git@stable"
 # patch is therefore also not applied (no effect on the curobo eval path).
 
 echo "Installing Curobo (pinned @ d64c4b, --no-build-isolation) ..."
-# cuRobo is no longer vendored. Install the exact upstream commit (d64c4b)
-# that was previously vendored, with --no-build-isolation so its CUDA
-# extensions compile against the already-installed torch==2.8.0+cu128
-# (curobo's [build-system] requires torch unpinned, which would pull a
-# wrong torch under build isolation). See pyproject.toml note.
-pip install --no-build-isolation "curobo @ git+https://github.com/NVlabs/curobo.git@d64c4b005459db10c5dd867d8b30a87d5bda9bdb"
+# cuRobo is installed via the robotwin-install-curobo entrypoint (owned by
+# rlinf-robotwin-runtime), which pins the exact upstream commit d64c4b and
+# runs with --no-build-isolation (CUDA exts compile against the installed
+# torch==2.7.1+cu128) + SETUPTOOLS_SCM_PRETEND_VERSION=0.7.0 (uv's git fetch
+# does not fetch the tag history setuptools_scm needs). --no-deps is retained
+# for leanness only (Phase 5 re-verified: scipy==1.10.1 pin holds even with
+# deps; curobo's extra deps aren't on the planner path). See
+# robotwin/curobo_install.py + pyproject.toml NOTE.
+robotwin-install-curobo
 
 echo "Installation basic environment complete!"
 echo -e "You need to:"
