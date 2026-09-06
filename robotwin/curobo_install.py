@@ -12,7 +12,9 @@ the ``[robotwin]`` extra::
 
 Why cuRobo is not a normal pyproject dependency (Round 2 / Phase 5)
 ------------------------------------------------------------------
-Two build-time facts make a plain ``"curobo @ git+..."`` dependency unworkable:
+Two build-time facts make a plain ``"curobo @ git+..."`` dependency unworkable
+(a third — the dist name ``nvidia-curobo`` ≠ the import name ``curobo`` — means
+even the named spec form must use the bare git URL; see ``CUROBO_SPEC``):
 
 1. ``--no-build-isolation`` is required (build-time). cuRobo's
    ``[build-system] requires`` lists ``torch`` *unpinned*. Under uv's default
@@ -82,7 +84,11 @@ __all__ = ["CUROBO_SPEC", "CUROBO_SHA", "SETUPTOOLS_SCM_PRETEND_VERSION", "insta
 # Do not change without re-running planner parity (position/velocity/final EEF
 # must match the candidate baseline).
 CUROBO_SHA = "d64c4b005459db10c5dd867d8b30a87d5bda9bdb"
-CUROBO_SPEC = f"curobo @ git+https://github.com/NVlabs/curobo.git@{CUROBO_SHA}"
+# NB: the upstream dist is named ``nvidia-curobo`` (the importable module is
+# ``curobo``). uv, unlike pip, rejects a ``"curobo @ git+..."`` spec because the
+# requested name does not match the built metadata name, so we pass the bare
+# git URL and let uv adopt whatever name the build produces.
+CUROBO_SPEC = f"git+https://github.com/NVlabs/curobo.git@{CUROBO_SHA}"
 
 # cuRobo versions itself with setuptools_scm; uv's git fetch does not fetch the
 # tag history, so pretend the version to let the build proceed.
