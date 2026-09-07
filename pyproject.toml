@@ -8,13 +8,14 @@ version = "0.1.0"
 description = "Installable RoboTwin runtime and dependency contract maintained for RLinf"
 readme = "README.md"
 license = {file = "LICENSE"}
-requires-python = ">=3.11,<3.12"
+requires-python = ">=3.10,<3.12"
 authors = [{name = "RLinf Contributors"}]
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
     "Environment :: GPU :: NVIDIA CUDA :: 12",
     "License :: OSI Approved :: MIT License",
     "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
 ]
 # NOTE: ``curobo`` is a runtime requirement for the CuroboPlanner backend but
@@ -45,9 +46,9 @@ classifiers = [
 #
 # ``--no-deps`` is also used, but the Phase 5 resolver re-check CORRECTED the
 # old rationale: cuRobo pins ``scipy>=1.7.0`` / ``torch>=1.10``, both satisfied
-# by the runtime pins ``scipy==1.10.1`` / ``torch==2.7.1``. A dry-run of
-# cuRobo's full dep set against the runtime pins holds scipy at 1.10.1 (69
-# packages, no conflict) -- so ``--no-deps`` is NOT needed to avoid a scipy
+# by the runtime pins ``scipy>=1.15.3,<2`` / ``torch==2.7.1``. A dry-run of
+# cuRobo's full dep set against the runtime pins holds scipy in the 1.15.x
+# range (no conflict) -- so ``--no-deps`` is NOT needed to avoid a scipy
 # upgrade (that was never the real risk). It is retained for leanness only:
 # cuRobo's extra deps (numpy-quaternion, scikit-image, networkx, ...) are not
 # imported by the planner path (Round 1 parity with --no-deps proved this).
@@ -55,7 +56,7 @@ classifiers = [
 dependencies = [
     "gymnasium==0.29.1",
     "huggingface-hub>=0.27.1",
-    "imageio==2.34.2",
+    "imageio>=2.36.1,<3",
     "matplotlib",
     # mplib stays a runtime dep: robotwin/envs/robot/planner.py does a top-level
     # ``import mplib`` (reached via _base_task -> Robot -> from .planner import),
@@ -68,17 +69,24 @@ dependencies = [
     # Non-headless (not opencv-python-headless): sapien==3.0.0b1 transitively
     # requires ``opencv-python>=4.0`` (non-headless), so declaring headless
     # here would install BOTH variants, recreating the cv2/ directory duality
-    # (the two wheels share cv2/ and overwrite each other's files). Pinning
-    # the full ``opencv-python==4.9.0.80`` satisfies sapien's requirement as a
+    # (the two wheels share cv2/ and overwrite each other's files). Using the
+    # full ``opencv-python>=4.10.0.84,<5`` satisfies sapien's requirement as a
     # single install — the headless optimization is unreachable while sapien
     # forces the full variant. cv2 is not imported on the inference path
     # (Phase 6 import trace), so the GUI components are unused but harmless.
-    "opencv-python==4.9.0.80",
+    # Round 3 raised the floor to 4.10.0.84 to align with OpenPI
+    # (``opencv-python>=4.10.0.84``) and RLDX-rpent's 4.11 line. Note a
+    # residual structural conflict remains vs RLDX-rpent, which pins the
+    # *different distribution* ``opencv-contrib-python-headless``: both
+    # provide ``cv2/`` and collide in a shared venv. That is documented in
+    # the Round 3 pairwise report (Gate 5); it cannot be fixed from this
+    # side while SAPIEN forces the non-headless variant.
+    "opencv-python>=4.10.0.84,<5",
     "open3d==0.18.0; platform_system == 'Linux' and platform_machine == 'x86_64'",
     "pillow>=10",
     "pyyaml",
     "sapien==3.0.0b1; platform_system == 'Linux' and platform_machine == 'x86_64'",
-    "scipy==1.10.1",
+    "scipy>=1.15.3,<2",
     "setuptools>=69.5.1,<75.9",
     "torch==2.7.1",
     "toppra==0.6.3",
@@ -117,4 +125,4 @@ robotwin = [
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py310"
