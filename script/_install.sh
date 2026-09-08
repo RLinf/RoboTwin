@@ -36,16 +36,15 @@ pip install "git+https://github.com/facebookresearch/pytorch3d.git@stable"
 # TOPP-planner reachability above. The mplib planner.py "drop collide bail"
 # patch is therefore also not applied (no effect on the curobo eval path).
 
-echo "Installing Curobo (pinned @ d64c4b, --no-build-isolation) ..."
-# cuRobo is installed via the robotwin-install-curobo entrypoint (owned by
-# rlinf-robotwin-runtime), which pins the exact upstream commit d64c4b and
-# runs with --no-build-isolation (CUDA exts compile against the installed
-# torch==2.7.1+cu128) + SETUPTOOLS_SCM_PRETEND_VERSION=0.7.0 (uv's git fetch
-# does not fetch the tag history setuptools_scm needs). --no-deps is retained
-# for leanness only (Phase 5 re-verified: scipy==1.10.1 pin holds even with
-# deps; curobo's extra deps aren't on the planner path). See
-# robotwin/curobo_install.py + pyproject.toml NOTE.
-robotwin-install-curobo
+# cuRobo (pinned @ d64c4b) is now a normal dependency declared in
+# pyproject.toml. uv builds it automatically during
+# ``uv pip install -e ".[robotwin]" --torch-backend=cu128``: RPent's
+# ``[tool.uv.extra-build-dependencies]`` supplies the exact build-time
+# ``torch==2.7.1`` and ``[tool.uv.extra-build-variables]`` supplies the
+# ``SETUPTOOLS_SCM_PRETEND_VERSION=0.7.0`` override the legacy cuRobo revision
+# needs. No separate post-install step (the former ``robotwin-install-curobo``
+# entry point has been removed). The pip-based flow below does not build the
+# CUDA extensions; use the uv contract for a working install.
 
 echo "Installation basic environment complete!"
 echo -e "You need to:"
