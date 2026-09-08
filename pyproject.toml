@@ -18,42 +18,14 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
 ]
-# NOTE: ``curobo`` is a runtime requirement for the CuroboPlanner backend but
-# is intentionally NOT listed in ``dependencies``: its build contract cannot be
-# expressed in package metadata (Round 2 / Phase 5). It is installed instead by
-# the ``robotwin-install-curobo`` console script (see ``[project.scripts]``
-# below), which owns the exact upstream commit + build flags. Run it after the
-# ``[robotwin]`` extra: ``robotwin-install-curobo``.
-#
-# Two build-time facts block a plain ``"curobo @ git+..."`` dependency:
-#  1. ``--no-build-isolation`` is required. cuRobo's ``[build-system]
-#     requires`` lists ``torch`` (unpinned); under uv's default build isolation
-#     the backend fetches a fresh CPU/wrong-CUDA torch and compiles the CUDA
-#     extensions against it (ABI mismatch at runtime). ``--no-build-isolation``
-#     makes the build reuse the installed ``torch==2.7.1+cu128``. This is a uv
-#     install flag, not a package-metadata field.
-#  2. ``setuptools_scm`` version detection. cuRobo versions itself with
-#     ``[tool.setuptools_scm]``; uv's git fetch for a ``git+...@<sha>`` dep
-#     fetches only the commit ref (no tag history), so the version is
-#     underivable and the build fails. The workaround is
-#     ``SETUPTOOLS_SCM_PRETEND_VERSION=0.7.0`` in the build env -- again an
-#     environment setting with no pyproject equivalent.
-# Both are build-environment settings with no dependency-declaration form, so
-# cuRobo is a post-install step owned by the entrypoint rather than a dep.
-# ``robotwin.envs.robot.planner`` imports ``curobo`` behind a ``try/except``,
-# so the robotwin wheel imports cleanly without curobo present; curobo is only
-# needed when ``CuroboPlanner`` is instantiated.
-#
-# ``--no-deps`` is also used, but the Phase 5 resolver re-check CORRECTED the
-# old rationale: cuRobo pins ``scipy>=1.7.0`` / ``torch>=1.10``, both satisfied
-# by the runtime pins ``scipy>=1.15.3,<2`` / ``torch==2.7.1``. A dry-run of
-# cuRobo's full dep set against the runtime pins holds scipy in the 1.15.x
-# range (no conflict) -- so ``--no-deps`` is NOT needed to avoid a scipy
-# upgrade (that was never the real risk). It is retained for leanness only:
-# cuRobo's extra deps (numpy-quaternion, scikit-image, networkx, ...) are not
-# imported by the planner path (Round 1 parity with --no-deps proved this).
-# See ``robotwin/curobo_install.py`` and ``script/_install.sh``.
+# cuRobo is pinned to the planner-parity-validated commit. RPent's uv build
+# configuration (``[tool.uv.extra-build-dependencies]`` /
+# ``[tool.uv.extra-build-variables]`` in the RPent root pyproject) supplies the
+# exact build-time Torch and ``SETUPTOOLS_SCM_PRETEND_VERSION`` override that
+# this legacy cuRobo revision requires, so a plain ``uv pip install -e ".[robotwin]"``
+# builds it correctly with no post-install step.
 dependencies = [
+    "nvidia-curobo @ git+https://github.com/NVlabs/curobo.git@d64c4b005459db10c5dd867d8b30a87d5bda9bdb",
     "gymnasium==0.29.1",
     "huggingface-hub>=0.27.1",
     "imageio>=2.36.1,<3",
@@ -98,11 +70,6 @@ dependencies = [
 
 [project.scripts]
 robotwin-download-assets = "robotwin.assets:main"
-# Owned installer for the pinned cuRobo @ d64c4b (build contract cannot be a
-# normal dep -- see NOTE above). Runs
-# ``uv pip install --no-build-isolation --no-deps curobo@d64c4b`` with
-# SETUPTOOLS_SCM_PRETEND_VERSION=0.7.0. Run after ``uv pip install -e ".[robotwin]"``.
-robotwin-install-curobo = "robotwin.curobo_install:main"
 
 [project.urls]
 Homepage = "https://github.com/RoboTwin-Platform/RoboTwin"
