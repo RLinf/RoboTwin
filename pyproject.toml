@@ -4,9 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rlinf-robotwin-runtime"
-version = "0.1.0"
-description = "Installable RoboTwin runtime and dependency contract maintained for RLinf"
-readme = "README.md"
+version = "0.1.1"
+description = "RoboTwin 2.0 environment runtime for RLinf and RPent"
+readme = "PYPI.md"
 license = {file = "LICENSE"}
 requires-python = ">=3.10,<3.12"
 authors = [{name = "RLinf Contributors"}]
@@ -77,6 +77,9 @@ robotwin-download-assets = "robotwin.assets:main"
 [project.urls]
 Homepage = "https://github.com/RLinf/RoboTwin"
 Repository = "https://github.com/RLinf/RoboTwin"
+Upstream = "https://github.com/RoboTwin-Platform/RoboTwin"
+RPent = "https://github.com/RLinf/RPent"
+Issues = "https://github.com/RLinf/RoboTwin/issues"
 
 [tool.setuptools]
 include-package-data = true
